@@ -61,6 +61,12 @@ something to consume by the time the call returns.
 
 `0.1.0-SNAPSHOT`, not yet published. Coordinates: `io.github.merzoukemansouri:kafka-testcontainers-kit`.
 
+Publishing to Maven Central runs via `.github/workflows/publish.yml` on every GitHub Release
+publish — it takes the release tag as the version, signs artifacts with GPG, and deploys through
+the Central Portal. Requires the `CENTRAL_USERNAME`, `CENTRAL_PASSWORD`, `GPG_PRIVATE_KEY` and
+`GPG_PASSPHRASE` repo secrets (Sonatype Central account + verified `io.github.merzoukemansouri`
+namespace + a GPG key) to be set up first.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
