@@ -6,9 +6,10 @@ import org.testcontainers.utility.DockerImageName;
 
 /**
  * Factory for a Kafka + Schema Registry testcontainer pair, wired onto the same Docker network.
- * Picks an arm64-compatible Kafka image transparently on Apple Silicon hosts.
+ * Picks an arm64-compatible Kafka image transparently on Apple Silicon hosts. Internal to
+ * {@link KafkaTestKit}.
  */
-public final class KafkaTestBroker {
+final class KafkaTestBroker {
 
     private static final String KAFKA_ARM_IMAGE = "niciqy/cp-kafka-arm64:7.0.1";
     private static final String KAFKA_X86_IMAGE = "confluentinc/cp-kafka:5.4.3";
@@ -29,12 +30,12 @@ public final class KafkaTestBroker {
                 : DockerImageName.parse(KAFKA_X86_IMAGE);
     }
 
-    public static KafkaContainer newKafkaContainer(Network network) {
+    static KafkaContainer newKafkaContainer(Network network) {
         return new KafkaContainer(selectKafkaImage(System.getProperty("os.name")))
                 .withNetwork(network);
     }
 
-    public static SchemaRegistryContainer newSchemaRegistryContainer(KafkaContainer kafkaContainer, Network network) {
+    static SchemaRegistryContainer newSchemaRegistryContainer(KafkaContainer kafkaContainer, Network network) {
         return new SchemaRegistryContainer(kafkaContainer).withNetwork(network);
     }
 }

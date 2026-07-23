@@ -41,6 +41,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <spring.kafka.version>3.3.16</spring.kafka.version>
+        <spring.test.version>6.1.4</spring.test.version>
         <kafka.clients.version>3.6.1</kafka.clients.version>
         <confluent.kafka.version>7.6.0</confluent.kafka.version>
         <testcontainers.version>1.21.4</testcontainers.version>
@@ -71,6 +72,11 @@
             <groupId>org.springframework.kafka</groupId>
             <artifactId>spring-kafka</artifactId>
             <version>${spring.kafka.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-test</artifactId>
+            <version>${spring.test.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>

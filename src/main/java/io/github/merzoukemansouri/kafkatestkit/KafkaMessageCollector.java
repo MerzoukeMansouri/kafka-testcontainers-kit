@@ -17,20 +17,18 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.List;
 
 /**
- * Collects Avro-deserialized Kafka records per topic for assertions in integration tests.
- * <p>
- * Unlike a {@code @KafkaListener} bean, topics are registered lazily and dynamically at runtime via
- * {@link #forTopic(String, Class)} — no per-topic annotated method or Spring context wiring
- * required. Each call starts its own {@link KafkaMessageListenerContainer} with a fresh, unique
- * consumer group so registrations never share rebalance state across topics.
+ * Collects Avro-deserialized Kafka records per topic. Internal to {@link KafkaTestKit} — topics are
+ * registered lazily and dynamically at runtime via {@link #forTopic(String, Class)}, each starting
+ * its own {@link KafkaMessageListenerContainer} with a fresh, unique consumer group so registrations
+ * never share rebalance state across topics.
  */
-public class KafkaMessageCollector implements AutoCloseable {
+class KafkaMessageCollector implements AutoCloseable {
 
     private final ConsumerFactory<String, Object> consumerFactory;
     private final Map<String, List<Object>> messagesByTopic = new ConcurrentHashMap<>();
     private final Map<String, MessageListenerContainer> containersByTopic = new ConcurrentHashMap<>();
 
-    public KafkaMessageCollector(String bootstrapServers, String schemaRegistryUrl) {
+    KafkaMessageCollector(String bootstrapServers, String schemaRegistryUrl) {
         Map<String, Object> props = Map.of(
                 ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers,
                 ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, KafkaAvroDeserializer.class,
@@ -48,7 +46,7 @@ public class KafkaMessageCollector implements AutoCloseable {
      * assert against it with polling (e.g. Awaitility) rather than a single read.
      */
     @SuppressWarnings("unchecked")
-    public <T> List<T> forTopic(String topic, Class<T> type) {
+    <T> List<T> forTopic(String topic, Class<T> type) {
         containersByTopic.computeIfAbsent(topic, this::startContainer);
         return (List<T>) messagesByTopic.computeIfAbsent(topic, t -> new CopyOnWriteArrayList<>());
     }
