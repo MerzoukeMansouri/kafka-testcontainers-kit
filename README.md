@@ -7,6 +7,17 @@ Targets Spring Kafka projects using Confluent Avro serialization. JSON/Protobuf 
 consumer support are not in scope for v1. Kafka-only — bring your own Postgres/other container
 setup and compose it alongside `KafkaTestKit` in your own test base class.
 
+## Install
+
+```xml
+<dependency>
+    <groupId>io.github.merzoukemansouri</groupId>
+    <artifactId>kafka-testcontainers-kit</artifactId>
+    <version>0.1.0</version>
+    <scope>test</scope>
+</dependency>
+```
+
 ## Usage
 
 ```java
@@ -59,13 +70,10 @@ something to consume by the time the call returns.
 
 ## Status
 
-`0.1.0-SNAPSHOT`, not yet published. Coordinates: `io.github.merzoukemansouri:kafka-testcontainers-kit`.
+Published to Maven Central: `io.github.merzoukemansouri:kafka-testcontainers-kit:0.1.0`.
 
-Publishing to Maven Central runs via `.github/workflows/publish.yml` on every GitHub Release
-publish — it takes the release tag as the version, signs artifacts with GPG, and deploys through
-the Central Portal. Requires the `CENTRAL_USERNAME`, `CENTRAL_PASSWORD`, `GPG_PRIVATE_KEY` and
-`GPG_PASSPHRASE` repo secrets (Sonatype Central account + verified `io.github.merzoukemansouri`
-namespace + a GPG key) to be set up first.
+Publishing runs via `.github/workflows/publish.yml` on every GitHub Release publish — it takes the
+release tag as the version, signs artifacts with GPG, and deploys through the Central Portal.
 
 ## License
 
