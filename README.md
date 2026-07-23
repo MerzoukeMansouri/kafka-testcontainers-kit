@@ -25,20 +25,32 @@ public abstract class MyKafkaIntegrationTest {
 class MyKafkaIntegrationTest extends MyKafkaIntegrationTestBase {
 
     @Test
-    void publishesEvent() {
+    void testProduction() {
         List<MyEvent> received = kafka.forTopic("my-topic", MyEvent.class);
 
-        // trigger production...
+        // trigger the app under test's production...
 
         await().atMost(10, SECONDS).until(() -> !received.isEmpty());
+    }
+
+    @Test
+    void testConsumption() {
+        kafka.publish("my-topic", "key", new MyEvent(...));
+
+        // assert the app under test reacted (DB row written, downstream call made, etc.)
     }
 }
 ```
 
 `KafkaTestKit.start()` is memoized — first call starts the containers, every later call (including
-from other test classes in the same JVM) returns the same instance. `forTopic` creates the topic if
-it doesn't exist yet and starts a listener for it on first call; the returned list is live and grows
-as messages arrive.
+from other test classes in the same JVM) returns the same instance.
+
+`forTopic` (test production) creates the topic if missing and starts a listener on first call; the
+returned list is live and grows as messages arrive — assert with polling (e.g. Awaitility).
+
+`publish` (test consumption) creates the topic if missing, Avro-serializes and sends the value
+(schema auto-registered), and blocks until the broker acks — so the app under test's consumer has
+something to consume by the time the call returns.
 
 ## Status
 

@@ -1,14 +1,22 @@
 package io.github.merzoukemansouri.kafkatestkit;
 
+import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
+import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import io.confluent.kafka.serializers.KafkaAvroSerializerConfig;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.TopicExistsException;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
 import org.springframework.test.context.DynamicPropertyRegistry;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -27,9 +35,12 @@ import java.util.concurrent.TimeUnit;
  *     }
  * }
  *
- * // in a test:
+ * // asserting on what the app under test produced:
  * List<MyEvent> received = kafka.forTopic("my-topic", MyEvent.class);
  * await().atMost(10, SECONDS).until(() -> !received.isEmpty());
+ *
+ * // driving the app under test's consumption:
+ * kafka.publish("my-topic", "key", new MyEvent(...));
  * }</pre>
  */
 public final class KafkaTestKit {
@@ -43,6 +54,7 @@ public final class KafkaTestKit {
     private final KafkaContainer kafka;
     private final SchemaRegistryContainer schemaRegistry;
     private final KafkaMessageCollector collector;
+    private final KafkaProducer<String, Object> producer;
 
     private KafkaTestKit() {
         Network network = Network.newNetwork();
@@ -51,6 +63,18 @@ public final class KafkaTestKit {
         kafka.start();
         schemaRegistry.start();
         this.collector = new KafkaMessageCollector(kafka.getBootstrapServers(), schemaRegistry.getSchemaRegistryUrl());
+        this.producer = newProducer(kafka.getBootstrapServers(), schemaRegistry.getSchemaRegistryUrl());
+    }
+
+    private static KafkaProducer<String, Object> newProducer(String bootstrapServers, String schemaRegistryUrl) {
+        Map<String, Object> props = Map.of(
+                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers,
+                ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
+                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KafkaAvroSerializer.class,
+                AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, schemaRegistryUrl,
+                KafkaAvroSerializerConfig.AUTO_REGISTER_SCHEMAS, true
+        );
+        return new KafkaProducer<>(props);
     }
 
     /**
@@ -85,6 +109,25 @@ public final class KafkaTestKit {
     public <T> List<T> forTopic(String topic, Class<T> type) {
         createTopicIfMissing(topic);
         return collector.forTopic(topic, type);
+    }
+
+    /**
+     * Publishes {@code value} to {@code topic} (Avro-serialized, schema auto-registered), creating
+     * the topic if missing, and blocks until the broker acks it — so a subsequent assertion on the
+     * consumer under test doesn't race the send.
+     */
+    public void publish(String topic, String key, Object value) {
+        createTopicIfMissing(topic);
+        try {
+            producer.send(new ProducerRecord<>(topic, key, value)).get(30, TimeUnit.SECONDS);
+        } catch (ExecutionException e) {
+            throw new IllegalStateException("Failed to publish to topic " + topic, e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while publishing to topic " + topic, e);
+        } catch (java.util.concurrent.TimeoutException e) {
+            throw new IllegalStateException("Timed out publishing to topic " + topic, e);
+        }
     }
 
     private void createTopicIfMissing(String topic) {
