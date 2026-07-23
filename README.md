@@ -35,9 +35,14 @@ class MyKafkaIntegrationTest extends MyKafkaIntegrationTestBase {
 
     @Test
     void testConsumption() {
-        kafka.publish("my-topic", "key", new MyEvent(...));
+        MyEvent event = MyEvent.newBuilder()
+                .setId("evt-1")
+                .setStatus("CREATED")
+                .build();
 
-        // assert the app under test reacted (DB row written, downstream call made, etc.)
+        kafka.publish("my-topic", "evt-1", event);
+
+        await().atMost(10, SECONDS).until(() -> repository.findById("evt-1").isPresent());
     }
 }
 ```
